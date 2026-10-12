@@ -1,0 +1,62 @@
+# ==========================================
+# 定義 CI/CD Pipeline 階段流程
+# ==========================================
+stages:
+  - sonarqube-check # 程式碼品質與靜態檢測階段
+
+# ==========================================
+# SonarQube 分析任務定義
+# ==========================================
+sonarqube-analysis:
+  stage: sonarqube-check # 綁定上述定義的 sonarqube-check 階段
+  image: maven:3.9-eclipse-temurin-17 # 建置容器環境：Maven 3.9 與 Eclipse Temurin JDK 17
+
+  variables:
+    # 將 Sonar 快取資料目錄導向專案工作目錄下，以便 GitLab Cache 能正確打包保存
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+    # 關閉 Git 淺層複製（Fetch full history），讓 SonarQube 可以分析 Git Blame 歷史以追蹤代碼作者
+    GIT_DEPTH: "0"
+    # 指定 Maven 本地倉庫路徑，使其能被 GitLab CI 快取重複使用，大幅加快後續建置速度
+    MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+
+  # ==========================================
+  # 快取機制設定（跨 Pipeline 保留下載的依賴）
+  # ==========================================
+  cache:
+    # 根據分支名稱動態隔離快取，不同分支各自維護一份快取
+    key: "${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .sonar/cache # 快取 SonarQube 下載的分析插件與規則包
+      - .m2/repository # 快取 Maven 下載的 Jar 依賴套件
+
+  # ==========================================
+  # 實際執行的建置與掃描指令
+  # ==========================================
+  script:
+    - >-
+      mvn clean compile
+      org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+      -Dspring-boot.repackage.skip=true
+      -Dsonar.host.url="${SONAR_HOST_URL:-http://sonarqube:9000}"
+      -Dsonar.token="${SONAR_TOKEN}"
+      -Dsonar.login="${SONAR_TOKEN}"
+      -Dsonar.projectKey="scs-facade"
+      -Dsonar.qualitygate.wait=true
+      # 說明：
+      # 1. mvn clean compile: 清理並重新編譯原始碼產出 .class 檔供靜態分析使用
+      # 2. org.sonarsource.scanner.maven:sonar-maven-plugin:sonar: 呼叫 Sonar 官方外掛（使用完整座標以防 prefix 找不到）
+      # 3. -Dspring-boot.repackage.skip=true: 跳過 Spring Boot 打包以避免缺少 Main Class 導致 repackage 報錯
+      # 4. -Dsonar.host.url: SonarQube 伺服器位址，若未在 GitLab 變數設定則預設使用 http://sonarqube:9000
+      # 5. -Dsonar.token / -Dsonar.login: 傳入認證 Token（同時指定確保不同 scanner 版本相容性）
+      # 6. -Dsonar.projectKey="scs-facade": 明確指定與 SonarQube 介面一致的專案 Key，避免名稱不符遭拒
+      # 7. -Dsonar.qualitygate.wait=true: 等待 SonarQube Quality Gate 判定結果回傳後才結束 Job
+
+  # 允許此任務失敗：若 Quality Gate 未通過，Pipeline 呈現黃色 Warning 狀態而非中斷阻擋（紅燈）
+  allow_failure: true
+
+  # ==========================================
+  # 觸發條件
+  # ==========================================
+  only:
+    - main # 僅在推送至 main 分支時觸發
+    - dev # 僅在推送至 dev 分支時觸發
