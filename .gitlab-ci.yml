@@ -34,22 +34,24 @@ sonarqube-analysis:
   # ==========================================
   script:
     - >-
-      mvn clean compile
+      mvn clean test
       org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
       -Dspring-boot.repackage.skip=true
+      -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
       -Dsonar.host.url="${SONAR_HOST_URL:-http://sonarqube:9000}"
       -Dsonar.token="${SONAR_TOKEN}"
       -Dsonar.login="${SONAR_TOKEN}"
       -Dsonar.projectKey="scs-facade"
       -Dsonar.qualitygate.wait=true
       # 說明：
-      # 1. mvn clean compile: 清理並重新編譯原始碼產出 .class 檔供靜態分析使用
-      # 2. org.sonarsource.scanner.maven:sonar-maven-plugin:sonar: 呼叫 Sonar 官方外掛（使用完整座標以防 prefix 找不到）
+      # 1. mvn clean test: 執行測試並由 JaCoCo 外掛自動產出測試覆蓋率報告 (target/site/jacoco/jacoco.xml)
+      # 2. org.sonarsource.scanner.maven:sonar-maven-plugin:sonar: 呼叫 Sonar 官方外掛進行代碼靜態分析
       # 3. -Dspring-boot.repackage.skip=true: 跳過 Spring Boot 打包以避免缺少 Main Class 導致 repackage 報錯
-      # 4. -Dsonar.host.url: SonarQube 伺服器位址，若未在 GitLab 變數設定則預設使用 http://sonarqube:9000
-      # 5. -Dsonar.token / -Dsonar.login: 傳入認證 Token（同時指定確保不同 scanner 版本相容性）
-      # 6. -Dsonar.projectKey="scs-facade": 明確指定與 SonarQube 介面一致的專案 Key，避免名稱不符遭拒
-      # 7. -Dsonar.qualitygate.wait=true: 等待 SonarQube Quality Gate 判定結果回傳後才結束 Job
+      # 4. -Dsonar.coverage.jacoco.xmlReportPaths: 明確指定 JaCoCo 覆蓋率報告路徑供 SonarQube 讀取
+      # 5. -Dsonar.host.url: SonarQube 伺服器位址，若未在 GitLab 變數設定則預設使用 http://sonarqube:9000
+      # 6. -Dsonar.token / -Dsonar.login: 傳入認證 Token
+      # 7. -Dsonar.projectKey="scs-facade": 明確指定與 SonarQube 介面一致的專案 Key
+      # 8. -Dsonar.qualitygate.wait=true: 等待 SonarQube Quality Gate 判定結果回傳後才結束 Job
 
   # 允許此任務失敗：若 Quality Gate 未通過，Pipeline 呈現黃色 Warning 狀態而非中斷阻擋（紅燈）
   allow_failure: true
