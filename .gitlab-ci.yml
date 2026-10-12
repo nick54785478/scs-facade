@@ -9,7 +9,7 @@ stages:
 # ==========================================
 sonarqube-analysis:
   stage: sonarqube-check # 綁定上述定義的 sonarqube-check 階段
-  image: maven:3.9-eclipse-temurin-17 # 建置容器環境：Maven 3.9 與 Eclipse Temurin JDK 17
+  image: maven:3.9-eclipse-temurin-21 # 建置容器環境：Maven 3.9 與 Eclipse Temurin JDK 21
 
   variables:
     # 將 Sonar 快取資料目錄導向專案工作目錄下，以便 GitLab Cache 能正確打包保存
