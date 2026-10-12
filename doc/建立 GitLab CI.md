@@ -198,6 +198,48 @@ git push origin dev
 
 ---
 
+## 步驟 7：設定 SonarQube Webhook 接回 scs-facade (自動化弱點匯入)
+
+當 GitLab CI 執行完 Maven 靜態掃描後，SonarQube 會在背景處理分析報告。分析完成後，SonarQube 能透過 **Webhook** 自動將分析結果事件回傳給 `scs-facade`，由後者自動調用 SonarQube OpenAPI 擷取 Issues/Hotspots 並同步為系統標準弱點模型。
+
+### 7.1 核心連線架構須知 (Docker 網路位址)
+* **SonarQube 運行於 Docker 容器** (`scs-gitlabci-sonarqube-1`)。
+* **scs-facade 運行於本機 Windows 宿主機**（預設連接埠 `8080`）。
+* ⚠️ **重要**：SonarQube Webhook 的 URL **不能寫 `http://localhost:8080`**，因為在容器內 `localhost` 是 SonarQube 容器自身，無法連到宿主機上的 `scs-facade`。
+* **正確 URL**：
+  * **當 scs-facade 在宿主機本機（IntelliJ / 本地終端）運行時**：請填寫 `http://host.docker.internal:8080/api/v1/scans/sonarqube/webhook`
+  * **若未來 scs-facade 也打包為 Docker 容器並加入 `devops-net` 網路時**：請填寫 `http://scs-facade:8080/api/v1/scans/sonarqube/webhook`
+
+### 7.2 Webhook 設定步驟 (兩種方式二選一)
+
+#### 方式 A：針對特定專案設定 (Project Webhook，推薦)
+1. 進入 SonarQube 網頁介面 (`http://localhost:9000`)。
+2. 進入目標專案（如 `scs-facade`）。
+3. 點選專案頂部選單的 **Project Settings > Webhooks**。
+4. 點選右上角的 **Create** 按鈕。
+5. 填寫以下欄位：
+   * **Name**：`scs-facade-webhook`（自訂可識別名稱）。
+   * **URL**：`http://host.docker.internal:8080/api/v1/scans/sonarqube/webhook`。
+   * **Secret**：留空（除非有設定驗證金鑰）。
+6. 點選 **Create** 儲存。
+
+#### 方式 B：全域 Webhook (Global Webhook，所有專案皆會回呼)
+1. 進入 SonarQube 網頁介面 (`http://localhost:9000`)。
+2. 以管理員身分點選頂部選單 **Administration > Configuration > Webhooks**。
+3. 點選右上角 **Create**。
+4. 填寫相同名稱與 URL (`http://host.docker.internal:8080/api/v1/scans/sonarqube/webhook`) 並儲存。
+
+### 7.3 驗證 Webhook 是否成功觸發
+1. 啟動本機的 `scs-facade` 應用程式 (`mvn spring-boot:run` 或在 IDE 中啟動)。
+2. 推送程式碼觸發 GitLab CI Pipeline，或在 SonarQube 上手動觸發一次分析。
+3. 分析完成後，回到 SonarQube 的 **Project Settings > Webhooks** 頁面。
+4. 在剛才建立的 Webhook 右側會出現 **Latest delivery** 紀錄：
+   * 點選查看歷史紀錄，確認 HTTP 狀態碼為 **`200 OK`**。
+   * 展開可看到 SonarQube 發送的原生 JSON 酬載以及 `scs-facade` 回應的 `SonarQubeIngestedResource` 弱點統計與結果。
+5. 在 `scs-facade` 的後端 Console 日誌中，即可看到自動匯入並觸發領域事件的相關紀錄。
+
+---
+
 ## 常見問題與調整彙總表 (Troubleshooting)
 
 | 階段 | 錯誤訊息 / 現象 | 根本原因 | 調整方案 |
