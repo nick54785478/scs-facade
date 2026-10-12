@@ -5,6 +5,7 @@ import com.example.scsfacade.application.dto.FindingGottenResult;
 import com.example.scsfacade.application.port.in.IngestSonarQubeUseCase;
 import com.example.scsfacade.presentation.assembler.SonarQubeResourceAssembler;
 import com.example.scsfacade.presentation.resource.in.IngestSonarQubeResource;
+import com.example.scsfacade.presentation.resource.in.ReceiveSonarQubeWebhookResource;
 import com.example.scsfacade.presentation.resource.out.SonarQubeIngestedResource;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,7 +40,7 @@ public class SonarQubeWebhookController {
     }
 
     /**
-     * 觸發 SonarQube 報告同步或接收 Webhook 事件。
+     * 觸發 SonarQube 報告同步或手動觸發匯入。
      *
      * @param resource 請求載體
      * @return 匯入標準弱點結果
@@ -53,4 +54,22 @@ public class SonarQubeWebhookController {
         SonarQubeIngestedResource response = sonarQubeResourceAssembler.toResource(resource.projectId(), results);
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * 接收 SonarQube 伺服器原生 Webhook 推播並自動執行標準化匯入。
+     *
+     * @param resource SonarQube 原生 Webhook 載體
+     * @return 匯入標準弱點結果
+     */
+    @Operation(summary = "接收 SonarQube 原生 Webhook 推播並自動執行標準化匯入")
+    @PostMapping("/webhook")
+    public ResponseEntity<SonarQubeIngestedResource> handleWebhook(
+            @RequestBody ReceiveSonarQubeWebhookResource resource) {
+        IngestSonarQubeCommand command = sonarQubeResourceAssembler.toCommand(resource);
+        List<FindingGottenResult> results = ingestSonarQubeUseCase.execute(command);
+        SonarQubeIngestedResource response = sonarQubeResourceAssembler.toResource(command.projectId(), results);
+        return ResponseEntity.ok(response);
+    }
 }
+
+

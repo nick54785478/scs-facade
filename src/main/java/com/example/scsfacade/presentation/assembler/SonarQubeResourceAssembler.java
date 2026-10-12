@@ -3,6 +3,7 @@ package com.example.scsfacade.presentation.assembler;
 import com.example.scsfacade.application.command.IngestSonarQubeCommand;
 import com.example.scsfacade.application.dto.FindingGottenResult;
 import com.example.scsfacade.presentation.resource.in.IngestSonarQubeResource;
+import com.example.scsfacade.presentation.resource.in.ReceiveSonarQubeWebhookResource;
 import com.example.scsfacade.presentation.resource.out.FindingGottenResource;
 import com.example.scsfacade.presentation.resource.out.SonarQubeIngestedResource;
 import org.springframework.stereotype.Component;
@@ -40,6 +41,23 @@ public class SonarQubeResourceAssembler {
                 resource.branch(),
                 resource.commitHash()
         );
+    }
+
+    /**
+     * 將 SonarQube 原生 Webhook 請求載體轉為 IngestSonarQubeCommand 應用層命令。
+     *
+     * @param resource 原生 Webhook 請求
+     * @return 應用層命令
+     */
+    public IngestSonarQubeCommand toCommand(ReceiveSonarQubeWebhookResource resource) {
+        if (resource == null || resource.project() == null) {
+            throw new IllegalArgumentException("SonarQube Webhook Payload 缺少專案資訊");
+        }
+        String projectId = resource.project().key();
+        String branch = resource.branch() != null ? resource.branch().name() : "main";
+        String commitHash = resource.revision() != null ? resource.revision() : "";
+
+        return new IngestSonarQubeCommand(projectId, branch, commitHash);
     }
 
     /**
