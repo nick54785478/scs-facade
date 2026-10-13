@@ -10,6 +10,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 
@@ -47,25 +49,48 @@ public class SonarQubeRestClient {
         try {
             log.info("正在自 SonarQube 拉取專案 [{}] (branch: [{}]) 的 Issues...", projectKey, branch);
 
+            String authHeader = "Basic " + Base64.getEncoder().encodeToString(
+                    (properties.getToken() + ":").getBytes(StandardCharsets.UTF_8));
+
             SonarQubeIssuesSearchResponse response = restClient.get()
                     .uri(uriBuilder -> {
                         uriBuilder.path("/api/issues/search")
                                 .queryParam("componentKeys", projectKey)
                                 .queryParam("resolved", "false")
                                 .queryParam("ps", "500");
-                        if (branch != null && !branch.trim().isEmpty()) {
+                        if (branch != null && !branch.trim().isEmpty() && !"main".equalsIgnoreCase(branch)) {
                             uriBuilder.queryParam("branch", branch);
                         }
                         return uriBuilder.build();
                     })
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + properties.getToken())
+                    .header(HttpHeaders.AUTHORIZATION, authHeader)
                     .retrieve()
                     .body(SonarQubeIssuesSearchResponse.class);
 
-            if (response != null && response.issues() != null) {
+            if (response != null && response.issues() != null && !response.issues().isEmpty()) {
                 log.info("成功自 SonarQube 獲取 {} 筆 Issues", response.issues().size());
                 return response.issues();
             }
+
+            // 若帶 branch 查無結果 (常見於 SonarQube Community 版未啟用多分支外掛)，嘗試不帶 branch 重新拉取以支援 Community 版
+            if (branch != null && !branch.trim().isEmpty() && !"main".equalsIgnoreCase(branch)) {
+                log.info("帶 branch [{}] 未取得 Issues，嘗試不帶 branch 重新拉取以支援 Community 版相容性...", branch);
+                SonarQubeIssuesSearchResponse fallbackResponse = restClient.get()
+                        .uri(uriBuilder -> uriBuilder.path("/api/issues/search")
+                                .queryParam("componentKeys", projectKey)
+                                .queryParam("resolved", "false")
+                                .queryParam("ps", "500")
+                                .build())
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .retrieve()
+                        .body(SonarQubeIssuesSearchResponse.class);
+
+                if (fallbackResponse != null && fallbackResponse.issues() != null) {
+                    log.info("成功自 SonarQube (全域/主分支) 獲取 {} 筆 Issues", fallbackResponse.issues().size());
+                    return fallbackResponse.issues();
+                }
+            }
+
             return Collections.emptyList();
         } catch (Exception e) {
             log.warn("呼叫 SonarQube 伺服器失敗 ({}), 回傳空弱點清單以供容錯處置", e.getMessage());
