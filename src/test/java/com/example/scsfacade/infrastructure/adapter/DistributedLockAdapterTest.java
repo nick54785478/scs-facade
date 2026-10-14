@@ -52,7 +52,7 @@ class DistributedLockAdapterTest {
         // Given
         String lockKey = "lock:scan:task:123";
         when(redissonClient.getLock(lockKey)).thenReturn(rLock);
-        when(rLock.tryLock(eq(0L), eq(30L), eq(TimeUnit.SECONDS))).thenReturn(true);
+        when(rLock.tryLock(0L, 30L, TimeUnit.SECONDS)).thenReturn(true);
 
         // When
         boolean acquired = distributedLockAdapter.tryLock(lockKey, 30);
@@ -75,7 +75,7 @@ class DistributedLockAdapterTest {
         // Given
         String lockKey = "lock:scan:task:123";
         when(redissonClient.getLock(lockKey)).thenReturn(rLock);
-        when(rLock.tryLock(eq(0L), eq(30L), eq(TimeUnit.SECONDS))).thenReturn(false);
+        when(rLock.tryLock(0L, 30L, TimeUnit.SECONDS)).thenReturn(false);
 
         // When
         boolean acquired = distributedLockAdapter.tryLock(lockKey, 30);

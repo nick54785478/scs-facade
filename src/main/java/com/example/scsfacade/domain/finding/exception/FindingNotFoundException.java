@@ -10,6 +10,8 @@ import com.example.scsfacade.domain.finding.aggregate.vo.FindingId;
  */
 public class FindingNotFoundException extends RuntimeException {
 
+    private static final long serialVersionUID = 1L;
+
     private final FindingId findingId;
 
     public FindingNotFoundException(FindingId findingId) {

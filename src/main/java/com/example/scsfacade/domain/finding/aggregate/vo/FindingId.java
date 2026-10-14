@@ -1,5 +1,6 @@
 package com.example.scsfacade.domain.finding.aggregate.vo;
 
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -9,7 +10,9 @@ import java.util.UUID;
  * 封裝領域內弱點的唯一識別碼，確保不可變性與純 Java 實踐。
  * </p>
  */
-public final class FindingId {
+public final class FindingId implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /**
      * 弱點唯一識別碼 UUID 字串值。

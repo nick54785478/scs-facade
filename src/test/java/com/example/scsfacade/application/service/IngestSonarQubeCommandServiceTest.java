@@ -123,8 +123,8 @@ class IngestSonarQubeCommandServiceTest {
         assertThat(result.commitHash()).isEqualTo("commit-123");
         assertThat(result.status()).isEqualTo(ScanExecutionStatus.SUCCESS.name());
         assertThat(result.newCount()).isEqualTo(1);
-        assertThat(result.existingCount()).isEqualTo(0);
-        assertThat(result.resolvedCount()).isEqualTo(0);
+        assertThat(result.existingCount()).isZero();
+        assertThat(result.resolvedCount()).isZero();
         assertThat(result.criticalCount()).isEqualTo(1);
         assertThat(result.passedQualityGate()).isFalse(); // 1 Critical 應未通過品質門檻
 
@@ -172,7 +172,7 @@ class IngestSonarQubeCommandServiceTest {
 
         // Then
         assertThat(result.existingCount()).isEqualTo(1);
-        assertThat(result.newCount()).isEqualTo(0);
+        assertThat(result.newCount()).isZero();
         assertThat(existingFinding.getLastSeenCommit()).isEqualTo("commit-456");
         assertThat(existingFinding.getFirstSeenCommit()).isEqualTo("commit-old");
         verify(findingRepositoryPort).saveAll(any());
@@ -217,7 +217,7 @@ class IngestSonarQubeCommandServiceTest {
 
         // Then
         assertThat(result.resolvedCount()).isEqualTo(1);
-        assertThat(result.totalActiveCount()).isEqualTo(0);
+        assertThat(result.totalActiveCount()).isZero();
         assertThat(activeFinding.getStatus()).isEqualTo(FindingStatus.RESOLVED);
         assertThat(activeFinding.getResolvedInCommit()).isEqualTo("commit-fix");
         verify(findingRepositoryPort).saveAll(any());

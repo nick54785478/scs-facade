@@ -51,7 +51,7 @@ public class EvaluateQualityGateCommandService implements EvaluateQualityGateUse
         // 2. 依命令構建門檻規則（若命令未指定則採用預設嚴格標準）
         int maxCritical = command.maxCritical() != null ? command.maxCritical() : 0;
         int maxHigh = command.maxHigh() != null ? command.maxHigh() : 2;
-        boolean blockOnSecrets = command.blockOnSecrets() != null ? command.blockOnSecrets() : true;
+        boolean blockOnSecrets = !Boolean.FALSE.equals(command.blockOnSecrets());
 
         QualityGateThreshold threshold = new QualityGateThreshold(maxCritical, maxHigh, blockOnSecrets);
         QualityGatePolicy policy = QualityGatePolicy.create(command.projectId(), threshold);

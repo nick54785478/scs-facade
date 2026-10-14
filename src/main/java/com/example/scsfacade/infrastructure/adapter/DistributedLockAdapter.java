@@ -31,6 +31,7 @@ public class DistributedLockAdapter implements DistributedLockPort {
     }
 
     @Override
+    @SuppressWarnings("java:S2222") // 分散式鎖的生命週期由呼叫端於業務處理完成後呼叫 releaseLock 釋放，此處僅負責加鎖
     public boolean tryLock(String lockKey, long timeoutSeconds) {
         if (lockKey == null || lockKey.trim().isEmpty()) {
             return false;

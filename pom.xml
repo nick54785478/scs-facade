@@ -23,6 +23,17 @@
         <redisson.version>3.31.0</redisson.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.coverage.exclusions>
+            **/config/**,
+            **/infrastructure/persistence/**/entity/**,
+            **/presentation/resource/**,
+            **/application/dto/**,
+            **/domain/**/exception/**,
+            **/domain/event/DomainEvent.java,
+            **/ScsFacadeApplication.java
+        </sonar.coverage.exclusions>
+        <argLine>-XX:+EnableDynamicAgentLoading</argLine>
     </properties>
 
     <dependencies>
