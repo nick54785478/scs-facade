@@ -79,7 +79,8 @@ public class SarifReportParserAdapter implements ScanReportParserPort {
                 }
 
                 // 建立該 run 的 rules 字典庫索引
-                Map<String, JsonNode> rulesMap = buildRulesMap(toolNode.path("rules"));
+                JsonNode rulesNode = (toolNode != null && !toolNode.isMissingNode()) ? toolNode.path("rules") : null;
+                Map<String, JsonNode> rulesMap = buildRulesMap(rulesNode);
 
                 JsonNode results = run.path("results");
                 if (results.isArray()) {
@@ -122,16 +123,17 @@ public class SarifReportParserAdapter implements ScanReportParserPort {
                                                 ScannerToolInfo toolInfo,
                                                 Map<String, JsonNode> rulesMap) {
         String ruleId = result.path("ruleId").asText("UNKNOWN_RULE");
-        JsonNode ruleNode = rulesMap.get(ruleId);
+        JsonNode ruleNode = rulesMap != null ? rulesMap.get(ruleId) : null;
 
         String message = result.path("message").path("text").asText("");
         String level = result.path("level").asText("");
+        String toolName = toolInfo != null ? toolInfo.getName() : "";
 
         // 解析 Severity
-        Severity severity = resolveSeverity(result, ruleNode, level, toolInfo.getName());
+        Severity severity = resolveSeverity(result, ruleNode, level, toolName);
 
         // 解析 Category
-        FindingCategory category = resolveCategory(ruleId, message, toolInfo.getName(), ruleNode);
+        FindingCategory category = resolveCategory(ruleId, message, toolName, ruleNode);
 
         // 解析 Location
         FindingLocation location = resolveLocation(result, message);

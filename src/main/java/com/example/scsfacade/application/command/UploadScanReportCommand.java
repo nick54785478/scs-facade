@@ -47,4 +47,35 @@ public record UploadScanReportCommand(
                                    String filename) {
         this(projectId, branch, commitHash, toolName, reportContent, filename, null);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof UploadScanReportCommand that)) return false;
+        return Objects.equals(projectId, that.projectId) &&
+                Objects.equals(branch, that.branch) &&
+                Objects.equals(commitHash, that.commitHash) &&
+                Objects.equals(toolName, that.toolName) &&
+                java.util.Arrays.equals(reportContent, that.reportContent) &&
+                Objects.equals(filename, that.filename) &&
+                Objects.equals(externalTaskId, that.externalTaskId);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(projectId, branch, commitHash, toolName, filename, externalTaskId);
+        result = 31 * result + java.util.Arrays.hashCode(reportContent);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "UploadScanReportCommand[" +
+                "projectId=" + projectId + ", " +
+                "branch=" + branch + ", " +
+                "commitHash=" + commitHash + ", " +
+                "toolName=" + toolName + ", " +
+                "filename=" + filename + ", " +
+                "externalTaskId=" + externalTaskId + ']';
+    }
 }
