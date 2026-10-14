@@ -291,4 +291,68 @@ class IngestSonarQubeCommandServiceTest {
 
         verify(scanExecutionRepositoryPort, never()).save(any());
     }
+
+    /**
+     * Feature: 掃描異常容錯與狀態結算
+     * Scenario: 當調用 SonarQube Scanner 失敗時，ScanExecution 標記為 FAILED 並釋放鎖
+     */
+    @Test
+    @DisplayName("掃描異常處理 - 發生錯誤時應記錄 FAILED 狀態並釋放分散式鎖")
+    void shouldHandleScanFailureGracefully() {
+        // Given
+        String projectId = "test-project";
+        IngestSonarQubeCommand command = new IngestSonarQubeCommand(projectId, "main", "commit-err");
+        when(distributedLockPort.tryLock(any(), anyLong())).thenReturn(true);
+        when(sonarQubeScannerPort.fetchProjectIssues(any(), any(), any()))
+                .thenThrow(new RuntimeException("SonarQube 服務不可用"));
+
+        // When & Then
+        assertThatThrownBy(() -> ingestSonarQubeCommandService.execute(command))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("SonarQube 服務不可用");
+
+        verify(scanExecutionRepositoryPort).save(any(ScanExecution.class));
+        verify(distributedLockPort).releaseLock(any());
+    }
+
+    /**
+     * Feature: 外部任務尚未成功時不 Fast Return
+     * Scenario: 雖然 externalTaskId 已存在但狀態為 FAILED，應重新執行掃描而非直接回傳
+     */
+    @Test
+    @DisplayName("冪等性防重 - 歷史任務狀態非 SUCCESS 時應允許重新執行")
+    void shouldProceedWhenExistingExecutionNotSuccess() {
+        // Given
+        String projectId = "test-project";
+        String taskId = "task-failed-retry";
+        IngestSonarQubeCommand command = new IngestSonarQubeCommand(
+                projectId, "main", "commit-retry", ScanTriggerType.WEBHOOK, taskId
+        );
+
+        ScanExecution failedExecution = ScanExecution.start(
+                projectId, "main", "commit-retry",
+                new ScannerToolInfo("SonarQube", "10.0", "SAST"),
+                ScanTriggerType.WEBHOOK,
+                taskId
+        );
+        failedExecution.fail("前次超時");
+
+        when(scanExecutionRepositoryPort.findByExternalTaskId(taskId))
+                .thenReturn(Optional.of(failedExecution));
+        when(distributedLockPort.tryLock(any(), anyLong())).thenReturn(true);
+        when(sonarQubeScannerPort.fetchProjectIssues(any(), any(), any()))
+                .thenReturn(Collections.emptyList());
+        when(findingRepositoryPort.findActiveByProjectAndBranch(projectId, "main"))
+                .thenReturn(Collections.emptyList());
+        when(scanExecutionRepositoryPort.save(any(ScanExecution.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        ScanExecutionGottenResult result = ingestSonarQubeCommandService.execute(command);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.status()).isEqualTo("SUCCESS");
+        verify(sonarQubeScannerPort).fetchProjectIssues(projectId, "main", "commit-retry");
+    }
 }

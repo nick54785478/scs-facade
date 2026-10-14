@@ -31,6 +31,9 @@
             **/presentation/resource/**,
             **/application/dto/**,
             **/application/view/**,
+            **/application/command/**,
+            **/application/query/**,
+            **/domain/**/event/**,
             **/domain/**/exception/**,
             **/domain/event/DomainEvent.java,
             **/ScsFacadeApplication.java

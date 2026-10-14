@@ -135,4 +135,60 @@ class QualityGatePolicyTest {
         assertThat(policy.getThreshold().getMaxCritical()).isEqualTo(1);
         assertThat(policy.pullDomainEvents()).isEmpty();
     }
+
+    /**
+     * Feature: 門禁策略門檻動態調整
+     * Scenario: 呼叫 updateThreshold 更新門檻設定
+     * Given: 現有門禁策略
+     * When: 傳入新的 QualityGateThreshold
+     * Then: 門檻成功更新，傳入 null 則予以忽略
+     */
+    @Test
+    @DisplayName("門檻調整 - 應正確更新門禁策略閾值設定")
+    void shouldUpdateThreshold() {
+        // Given
+        QualityGatePolicy policy = QualityGatePolicy.createDefault("test-proj");
+        QualityGateThreshold newThreshold = new QualityGateThreshold(2, 10, false);
+
+        // When
+        policy.updateThreshold(newThreshold);
+
+        // Then
+        assertThat(policy.getThreshold().getMaxCritical()).isEqualTo(2);
+        assertThat(policy.getThreshold().getMaxHigh()).isEqualTo(10);
+        assertThat(policy.getThreshold().isBlockOnSecrets()).isFalse();
+
+        // When: passing null
+        policy.updateThreshold(null);
+        assertThat(policy.getThreshold().getMaxCritical()).isEqualTo(2);
+    }
+
+    /**
+     * Feature: 門禁策略實體相等性與參數防護
+     * Scenario: 驗證 QualityGatePolicy 之 equals, hashCode 與無效參數防護
+     * Given: Policy 與無效之負數門檻
+     * When: 建立與比對
+     * Then: 拋出 IllegalArgumentException，且 equals 依據 PolicyId 運作
+     */
+    @Test
+    @DisplayName("實體相等性與參數防護 - 應基於 PolicyId 判定相等性並阻擋負數門檻")
+    void shouldVerifyQualityGatePolicyEqualityAndValidation() {
+        // Given
+        QualityGatePolicy p1 = QualityGatePolicy.createDefault("test-proj");
+        QualityGatePolicy p2 = QualityGatePolicy.reconstitute(p1.getId(), "test-proj", p1.getThreshold());
+        QualityGatePolicy p3 = QualityGatePolicy.createDefault("test-proj");
+
+        // Then
+        assertThat(p1).isEqualTo(p2);
+        assertThat(p1.hashCode()).isEqualTo(p2.hashCode());
+        assertThat(p1).isNotEqualTo(p3);
+        assertThat(p1.equals(null)).isFalse();
+        assertThat(p1.equals(p1)).isTrue();
+
+        // Validation
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> new QualityGateThreshold(-1, 0, false))
+                .isInstanceOf(IllegalArgumentException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> new QualityGateThreshold(0, -1, false))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

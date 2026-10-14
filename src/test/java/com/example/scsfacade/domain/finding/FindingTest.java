@@ -177,4 +177,142 @@ class FindingTest {
         assertThat(reconstituted.getId()).isEqualTo(id);
         assertThat(reconstituted.pullDomainEvents()).isEmpty();
     }
+
+    /**
+     * Feature: 弱點狀態確認為真實風險
+     * Scenario: 標記弱點為 CONFIRMED 並發布 FindingStatusChangedEvent
+     * Given: 初始狀態為 OPEN 的弱點
+     * When: 呼叫 markAsConfirmed()
+     * Then: 狀態轉移為 CONFIRMED，重複呼叫時保持等冪不發布額外事件
+     */
+    @Test
+    @DisplayName("弱點確認 - 應正確更新狀態為 CONFIRMED 並具備等冪性")
+    void shouldMarkAsConfirmedAndPublishStatusChangedEvent() {
+        // Given
+        Finding finding = Finding.createNew("scs-core", "main", "commit-101", toolInfo, ruleInfo, Severity.HIGH, location, "{}");
+        finding.pullDomainEvents();
+
+        // When
+        finding.markAsConfirmed();
+
+        // Then
+        assertThat(finding.getStatus()).isEqualTo(FindingStatus.CONFIRMED);
+        List<DomainEvent> events = finding.pullDomainEvents();
+        assertThat(events).hasSize(1);
+        FindingStatusChangedEvent event = (FindingStatusChangedEvent) events.get(0);
+        assertThat(event.newStatus()).isEqualTo(FindingStatus.CONFIRMED);
+
+        // Idempotency check
+        finding.markAsConfirmed();
+        assertThat(finding.pullDomainEvents()).isEmpty();
+    }
+
+    /**
+     * Feature: 弱點掃描時間戳記刷新
+     * Scenario: 於後續掃描再次偵測到同一弱點時刷新生命週期
+     * Given: 已存在的弱點聚合根
+     * When: 呼叫 touchScan(commitHash, scanTime) 與 touchScan(scanTime)
+     * Then: 生命週期中之最後見到提交與時間被成功更新
+     */
+    @Test
+    @DisplayName("掃描時間刷新 - 應正確更新生命週期中最後見到 Commit 與時間戳記")
+    void shouldTouchScanAndUpdateLifecycle() {
+        // Given
+        Finding finding = Finding.createNew("scs-core", "main", "commit-101", toolInfo, ruleInfo, Severity.HIGH, location, "{}");
+        Instant t1 = Instant.now().plusSeconds(60);
+
+        // When
+        finding.touchScan("commit-102", t1);
+
+        // Then
+        assertThat(finding.getLifecycle().getLastSeenCommit()).isEqualTo("commit-102");
+        assertThat(finding.getLifecycle().getLastSeenAt()).isEqualTo(t1);
+
+        // When: touchScan with single arg
+        Instant t2 = Instant.now().plusSeconds(120);
+        finding.touchScan(t2);
+        assertThat(finding.getLifecycle().getLastSeenAt()).isEqualTo(t2);
+    }
+
+    /**
+     * Feature: 弱點嚴重等級調整
+     * Scenario: 調整弱點之 Severity
+     * Given: Severity 為 HIGH 之弱點
+     * When: 調整為 CRITICAL
+     * Then: 嚴重度成功變更為 CRITICAL
+     */
+    @Test
+    @DisplayName("嚴重等級調整 - 應正確更新弱點之嚴重度評級")
+    void shouldAdjustSeverity() {
+        // Given
+        Finding finding = Finding.createNew("scs-core", "main", "commit-101", toolInfo, ruleInfo, Severity.HIGH, location, "{}");
+
+        // When
+        finding.adjustSeverity(Severity.CRITICAL);
+
+        // Then
+        assertThat(finding.getSeverity()).isEqualTo(Severity.CRITICAL);
+
+        // When: adjust with null or same
+        finding.adjustSeverity(null);
+        assertThat(finding.getSeverity()).isEqualTo(Severity.CRITICAL);
+    }
+
+    /**
+     * Feature: 弱點修復無參數重載與等冪保護
+     * Scenario: 呼叫 markAsResolved() 無參數版本，且已修復狀態不重複觸發
+     * Given: 初始 OPEN 弱點
+     * When: 呼叫 markAsResolved() 兩次
+     * Then: 僅第一次觸發事件，第二次保持等冪
+     */
+    @Test
+    @DisplayName("弱點修復等冪性 - 已修復弱點再次呼叫修復不應重複觸發領域事件")
+    void shouldMarkAsResolvedWithDefaultOverloadAndIdempotency() {
+        // Given
+        Finding finding = Finding.createNew("scs-core", "main", "commit-101", toolInfo, ruleInfo, Severity.MEDIUM, location, "{}");
+        finding.pullDomainEvents();
+
+        // When
+        finding.markAsResolved();
+
+        // Then
+        assertThat(finding.getStatus()).isEqualTo(FindingStatus.RESOLVED);
+        assertThat(finding.pullDomainEvents()).hasSize(1);
+
+        // Repeat
+        finding.markAsResolved();
+        assertThat(finding.pullDomainEvents()).isEmpty();
+    }
+
+    /**
+     * Feature: 弱點聚合根相等性與屬性查詢
+     * Scenario: 驗證 Finding 之 equals, hashCode 與各種 getters
+     * Given: 相同 ID 與不同 ID 之 Finding
+     * When: 比對與讀取屬性
+     * Then: 基於 FindingId 判定相等性，所有屬性正確回傳
+     */
+    @Test
+    @DisplayName("實體相等性與屬性 - 應基於 FindingId 判定 equals 與 hashCode")
+    void shouldVerifyFindingEqualityAndGetters() {
+        // Given
+        Finding f1 = Finding.createNew("scs-core", "main", "commit-101", toolInfo, ruleInfo, Severity.HIGH, location, "{\"raw\":1}");
+        Finding f2 = Finding.reconstitute(
+                f1.getId(), f1.getProjectId(), f1.getBranch(), f1.getFingerprint(),
+                f1.getToolInfo(), f1.getCategory(), f1.getRuleInfo(), f1.getSeverity(),
+                f1.getLocation(), f1.getStatus(), f1.getLifecycle(), f1.getRawDetails()
+        );
+        Finding f3 = Finding.createNew("scs-core", "main", "commit-101", toolInfo, ruleInfo, Severity.HIGH, location, "{\"raw\":2}");
+
+        // Then
+        assertThat(f1).isEqualTo(f2);
+        assertThat(f1.hashCode()).isEqualTo(f2.hashCode());
+        assertThat(f1).isNotEqualTo(f3);
+        assertThat(f1.equals(null)).isFalse();
+        assertThat(f1.equals(f1)).isTrue();
+
+        assertThat(f1.getCategory()).isEqualTo(FindingCategory.CODE_SMELL);
+        assertThat(f1.getRawDetails()).isEqualTo("{\"raw\":1}");
+        assertThat(f1.getBranch()).isEqualTo("main");
+        assertThat(f1.getToolInfo()).isEqualTo(toolInfo);
+    }
 }

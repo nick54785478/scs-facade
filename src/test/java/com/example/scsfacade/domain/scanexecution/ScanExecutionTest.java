@@ -121,4 +121,95 @@ class ScanExecutionTest {
         assertThat(execution.getStatus()).isEqualTo(ScanExecutionStatus.SUCCESS);
         assertThat(execution.pullDomainEvents()).isEmpty();
     }
+
+    /**
+     * Feature: 掃描批次失敗
+     * Scenario: 記錄掃描異常原因並更新狀態為 FAILED
+     * Given: 執行中之 ScanExecution
+     * When: 呼叫 fail(errorMessage)
+     * Then: 狀態為 FAILED，記錄錯誤訊息與結束時間
+     */
+    @Test
+    @DisplayName("掃描失敗 - 應正確更新狀態為 FAILED 並記錄錯誤訊息")
+    void shouldHandleScanFailureAndRecordErrorMessage() {
+        // Given
+        ScannerToolInfo toolInfo = new ScannerToolInfo("SonarQube", "10.0", "SAST");
+        ScanExecution execution = ScanExecution.start("my-proj", "main", "commit-aaa", toolInfo, ScanTriggerType.PIPELINE);
+
+        // When
+        execution.fail("SonarQube 掃描超時或連線失敗");
+
+        // Then
+        assertThat(execution.getStatus()).isEqualTo(ScanExecutionStatus.FAILED);
+        assertThat(execution.getErrorMessage()).isEqualTo("SonarQube 掃描超時或連線失敗");
+        assertThat(execution.getCompletedAt()).isNotNull();
+    }
+
+    /**
+     * Feature: 外部任務關聯與完成操作等冪保護
+     * Scenario: 支援外部任務識別碼，且重複呼叫 complete 不重複累積事件
+     * Given: 攜帶 externalTaskId 之 ScanExecution 已完成
+     * When: 再次呼叫 complete(summary)
+     * Then: 狀態維持 SUCCESS，不重複產生領域事件
+     */
+    @Test
+    @DisplayName("外部任務與完成等冪性 - 已完成狀態下重複呼叫 complete 不應重新結算或重發事件")
+    void shouldSupportExternalTaskIdAndIdempotentComplete() {
+        // Given
+        ScannerToolInfo toolInfo = new ScannerToolInfo("SonarQube", "10.0", "SAST");
+        ScanExecution execution = ScanExecution.start(
+                "my-proj", "main", "commit-aaa", toolInfo, ScanTriggerType.WEBHOOK, "sonar-task-999"
+        );
+        assertThat(execution.getExternalTaskId()).isEqualTo("sonar-task-999");
+
+        ScanSummary summary = new ScanSummary(5, 1, 4, 0, 0, 0, true);
+        execution.complete(summary);
+        execution.pullDomainEvents();
+
+        // When (重複完成)
+        execution.complete(new ScanSummary(10, 5, 5, 0, 0, 0, false));
+
+        // Then (不應被覆蓋)
+        assertThat(execution.getSummary().getTotalActiveCount()).isEqualTo(5);
+        assertThat(execution.pullDomainEvents()).isEmpty();
+
+        // 驗證帶有 externalTaskId 的 reconstitute
+        ScanExecution reconstituted = ScanExecution.reconstitute(
+                execution.getId(), "my-proj", "main", "commit-aaa",
+                toolInfo, ScanTriggerType.WEBHOOK,
+                ScanExecutionStatus.SUCCESS, summary, execution.getPeriod(), "sonar-task-999"
+        );
+        assertThat(reconstituted.getExternalTaskId()).isEqualTo("sonar-task-999");
+    }
+
+    /**
+     * Feature: 聚合根相等性與屬性查詢
+     * Scenario: 驗證 ScanExecution 之 equals, hashCode 與 getters
+     * Given: 相同 ID 與不同 ID 之 ScanExecution
+     * When: 進行比對
+     * Then: 基於 Entity ID 判定相等性
+     */
+    @Test
+    @DisplayName("實體相等性與屬性 - 應基於 ScanExecutionId 判定 equals 與 hashCode")
+    void shouldVerifyScanExecutionEqualityAndGetters() {
+        // Given
+        ScannerToolInfo toolInfo = new ScannerToolInfo("SonarQube", "10.0", "SAST");
+        ScanExecution e1 = ScanExecution.start("my-proj", "main", "commit-aaa", toolInfo, ScanTriggerType.PIPELINE);
+        ScanExecution e2 = ScanExecution.reconstitute(
+                e1.getId(), "my-proj", "main", "commit-aaa", toolInfo,
+                ScanTriggerType.PIPELINE, e1.getStatus(), e1.getSummary(), e1.getPeriod()
+        );
+        ScanExecution e3 = ScanExecution.start("my-proj", "main", "commit-aaa", toolInfo, ScanTriggerType.PIPELINE);
+
+        // Then
+        assertThat(e1).isEqualTo(e2);
+        assertThat(e1.hashCode()).isEqualTo(e2.hashCode());
+        assertThat(e1).isNotEqualTo(e3);
+        assertThat(e1.equals("other")).isFalse();
+        assertThat(e1.equals(e1)).isTrue();
+
+        assertThat(e1.getToolInfo()).isEqualTo(toolInfo);
+        assertThat(e1.getPeriod()).isNotNull();
+        assertThat(e1.getStartedAt()).isNotNull();
+    }
 }
