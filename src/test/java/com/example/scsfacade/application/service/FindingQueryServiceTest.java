@@ -133,4 +133,31 @@ class FindingQueryServiceTest {
         assertThat(views).hasSize(1);
         assertThat(views.get(0).status()).isEqualTo("OPEN");
     }
+
+    /**
+     * Feature: 弱點資料查詢
+     * Scenario: 查詢專案所有弱點 (status 為 null 時不進行過濾)
+     */
+    @Test
+    @DisplayName("依專案列表查詢 - 未指定狀態時應回傳全部")
+    void shouldReturnAllFindingsWhenStatusNotSpecified() {
+        // Given
+        String projectId = "proj-1";
+        Finding finding = Finding.createNew(
+                projectId, "main", "c1",
+                new ScannerToolInfo("SonarQube", "10.0", "SAST"),
+                new RuleInfo("r1", "rule", List.of(), null),
+                Severity.LOW,
+                new FindingLocation("File.java", 1, 1, ""),
+                "{}"
+        );
+        ListFindingQuery query = new ListFindingQuery(projectId, null);
+        when(findingRepositoryPort.findByProjectId(projectId)).thenReturn(List.of(finding));
+
+        // When
+        List<FindingGottenView> views = findingQueryService.listByProject(query);
+
+        // Then
+        assertThat(views).hasSize(1);
+    }
 }

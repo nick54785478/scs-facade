@@ -85,4 +85,36 @@ class DtoAssemblerTest {
         assertThat(dto.totalActiveCount()).isEqualTo(10);
         assertThat(dto.passedQualityGate()).isFalse();
     }
+
+    /**
+     * Feature: 品質門禁結果轉換為應用層 DTO
+     * Scenario: 測試通過與未通過門禁情境的 DTO 組裝
+     */
+    @Test
+    @DisplayName("QualityGate 轉換為 DTO - 通過與未通過情境驗證")
+    void shouldMapQualityGateToDto() {
+        QualityGateDtoAssembler assembler = new QualityGateDtoAssembler();
+
+        // 1. PASSED 情境
+        var passedResult = assembler.toResult(
+                "proj-1",
+                com.example.scsfacade.domain.qualitygate.aggregate.vo.QualityGateStatus.PASSED,
+                0,
+                1
+        );
+        assertThat(passedResult.passed()).isTrue();
+        assertThat(passedResult.status()).isEqualTo("PASSED");
+        assertThat(passedResult.message()).contains("通過品質門禁檢查");
+
+        // 2. FAILED 情境
+        var failedResult = assembler.toResult(
+                "proj-1",
+                com.example.scsfacade.domain.qualitygate.aggregate.vo.QualityGateStatus.FAILED,
+                2,
+                5
+        );
+        assertThat(failedResult.passed()).isFalse();
+        assertThat(failedResult.status()).isEqualTo("FAILED");
+        assertThat(failedResult.message()).contains("未通過品質門禁檢查");
+    }
 }

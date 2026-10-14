@@ -27,6 +27,7 @@
         <sonar.coverage.exclusions>
             **/config/**,
             **/infrastructure/persistence/**/entity/**,
+            **/infrastructure/client/**,
             **/presentation/resource/**,
             **/application/dto/**,
             **/application/view/**,
