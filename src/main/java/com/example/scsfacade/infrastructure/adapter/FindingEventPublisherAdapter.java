@@ -30,8 +30,10 @@ public class FindingEventPublisherAdapter implements FindingEventPublisherPort {
     @Override
     public void publish(DomainEvent event) {
         if (event != null) {
-            log.debug("發布領域事件: {} [eventId={}, aggregateType={}, aggregateId={}, occurredAt={}]",
-                    event.getClass().getSimpleName(), event.eventId(), event.aggregateType(), event.aggregateId(), event.occurredAt());
+            if (log.isDebugEnabled()) {
+                log.debug("發布領域事件: {} [eventId={}, aggregateType={}, aggregateId={}, occurredAt={}]",
+                        event.getClass().getSimpleName(), event.eventId(), event.aggregateType(), event.aggregateId(), event.occurredAt());
+            }
             applicationEventPublisher.publishEvent(event);
         }
     }

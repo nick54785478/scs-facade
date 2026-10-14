@@ -29,6 +29,7 @@
             **/infrastructure/persistence/**/entity/**,
             **/presentation/resource/**,
             **/application/dto/**,
+            **/application/view/**,
             **/domain/**/exception/**,
             **/domain/event/DomainEvent.java,
             **/ScsFacadeApplication.java
