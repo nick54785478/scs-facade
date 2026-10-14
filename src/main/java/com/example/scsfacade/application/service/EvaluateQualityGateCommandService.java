@@ -54,7 +54,7 @@ public class EvaluateQualityGateCommandService implements EvaluateQualityGateUse
         boolean blockOnSecrets = command.blockOnSecrets() != null ? command.blockOnSecrets() : true;
 
         QualityGateThreshold threshold = new QualityGateThreshold(maxCritical, maxHigh, blockOnSecrets);
-        QualityGatePolicy policy = new QualityGatePolicy(command.projectId(), threshold);
+        QualityGatePolicy policy = QualityGatePolicy.create(command.projectId(), threshold);
 
         // 3. 聚合根執行核心業務評估
         QualityGateStatus status = policy.evaluate(activeFindings);

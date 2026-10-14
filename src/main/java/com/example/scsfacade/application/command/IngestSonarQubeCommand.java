@@ -1,5 +1,7 @@
 package com.example.scsfacade.application.command;
 
+import com.example.scsfacade.domain.scanexecution.aggregate.vo.ScanTriggerType;
+
 /**
  * 匯入 SonarQube 掃描結果命令 (IngestSonarQubeCommand)。
  * <p>
@@ -9,11 +11,27 @@ package com.example.scsfacade.application.command;
 public record IngestSonarQubeCommand(
         String projectId,
         String branch,
-        String commitHash
+        String commitHash,
+        ScanTriggerType triggerType,
+        String externalTaskId
 ) {
     public IngestSonarQubeCommand {
         if (projectId == null || projectId.trim().isEmpty()) {
             throw new IllegalArgumentException("專案代碼不可為空");
         }
+        if (triggerType == null) {
+            triggerType = ScanTriggerType.WEBHOOK;
+        }
+        if (externalTaskId != null && externalTaskId.trim().isEmpty()) {
+            externalTaskId = null;
+        }
+    }
+
+    public IngestSonarQubeCommand(String projectId, String branch, String commitHash, ScanTriggerType triggerType) {
+        this(projectId, branch, commitHash, triggerType, null);
+    }
+
+    public IngestSonarQubeCommand(String projectId, String branch, String commitHash) {
+        this(projectId, branch, commitHash, ScanTriggerType.WEBHOOK, null);
     }
 }

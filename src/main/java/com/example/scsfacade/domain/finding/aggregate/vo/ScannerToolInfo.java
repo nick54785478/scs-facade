@@ -10,9 +10,20 @@ import java.util.Objects;
  */
 public final class ScannerToolInfo {
 
+    /**
+     * 掃描工具名稱 (Scanner Tool Name，例如 "SonarQube", "Trivy", "Gitleaks")。
+     */
     private final String name;
+
+    /**
+     * 掃描工具版本號 (Tool Version，例如 "10.6", "0.50.0")。
+     */
     private final String version;
-    private final String category; // SAST, SCA, SECRET, IAC
+
+    /**
+     * 掃描技術分類類別 (Tool Category，如 "SAST", "SCA", "SECRET", "IAC")。
+     */
+    private final String category;
 
     public ScannerToolInfo(String name, String version, String category) {
         if (name == null || name.trim().isEmpty()) {
@@ -37,8 +48,12 @@ public final class ScannerToolInfo {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ScannerToolInfo that)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof ScannerToolInfo that)) {
+            return false;
+        }
         return Objects.equals(name, that.name) &&
                 Objects.equals(version, that.version) &&
                 Objects.equals(category, that.category);

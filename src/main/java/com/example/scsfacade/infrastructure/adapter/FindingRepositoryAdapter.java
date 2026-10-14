@@ -2,8 +2,10 @@ package com.example.scsfacade.infrastructure.adapter;
 
 import com.example.scsfacade.application.port.out.FindingRepositoryPort;
 import com.example.scsfacade.domain.finding.aggregate.root.Finding;
+import com.example.scsfacade.domain.finding.aggregate.vo.FindingCategory;
 import com.example.scsfacade.domain.finding.aggregate.vo.FindingFingerprint;
 import com.example.scsfacade.domain.finding.aggregate.vo.FindingId;
+import com.example.scsfacade.domain.finding.aggregate.vo.FindingLifecycle;
 import com.example.scsfacade.domain.finding.aggregate.vo.FindingLocation;
 import com.example.scsfacade.domain.finding.aggregate.vo.FindingStatus;
 import com.example.scsfacade.domain.finding.aggregate.vo.RuleInfo;
@@ -79,11 +81,23 @@ public class FindingRepositoryAdapter implements FindingRepositoryPort {
                 .toList();
     }
 
+    @Override
+    public List<Finding> findActiveByProjectAndBranch(String projectId, String branch) {
+        List<String> activeStatuses = List.of(FindingStatus.OPEN.name(), FindingStatus.CONFIRMED.name());
+        String queryBranch = branch != null && !branch.trim().isEmpty() ? branch.trim() : "main";
+        return jpaRepository.findByProjectIdAndBranchAndStatusIn(projectId, queryBranch, activeStatuses).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
     // --- Entity 與 Domain 互轉方法 ---
 
     private FindingJpaEntity toEntity(Finding domain) {
         String cweJoined = domain.getRuleInfo().getCweList() != null
                 ? String.join(",", domain.getRuleInfo().getCweList())
+                : "";
+        String tagsJoined = domain.getRuleInfo().getTags() != null
+                ? String.join(",", domain.getRuleInfo().getTags())
                 : "";
 
         return new FindingJpaEntity(
@@ -91,14 +105,19 @@ public class FindingRepositoryAdapter implements FindingRepositoryPort {
                 domain.getProjectId(),
                 domain.getBranch(),
                 domain.getCommitHash(),
+                domain.getFirstSeenCommit(),
+                domain.getLastSeenCommit(),
+                domain.getResolvedInCommit(),
                 domain.getFingerprint().getValue(),
                 domain.getToolInfo().getName(),
                 domain.getToolInfo().getVersion(),
                 domain.getToolInfo().getCategory(),
+                domain.getCategory() != null ? domain.getCategory().name() : "CODE_SMELL",
                 domain.getRuleInfo().getRuleId(),
                 domain.getRuleInfo().getName(),
                 cweJoined,
                 domain.getRuleInfo().getCve(),
+                tagsJoined,
                 domain.getSeverity().name(),
                 domain.getLocation().getFilePath(),
                 domain.getLocation().getStartLine(),
@@ -107,6 +126,7 @@ public class FindingRepositoryAdapter implements FindingRepositoryPort {
                 domain.getStatus().name(),
                 domain.getFirstSeenAt(),
                 domain.getLastSeenAt(),
+                domain.getResolvedAt(),
                 domain.getRawDetails()
         );
     }
@@ -116,11 +136,16 @@ public class FindingRepositoryAdapter implements FindingRepositoryPort {
                 ? Arrays.asList(entity.getCweList().split(","))
                 : Collections.emptyList();
 
+        List<String> tags = entity.getTags() != null && !entity.getTags().isEmpty()
+                ? Arrays.asList(entity.getTags().split(","))
+                : Collections.emptyList();
+
         RuleInfo ruleInfo = new RuleInfo(
                 entity.getRuleId(),
                 entity.getRuleName(),
                 cweList,
-                entity.getCve()
+                entity.getCve(),
+                tags
         );
 
         ScannerToolInfo toolInfo = new ScannerToolInfo(
@@ -136,19 +161,36 @@ public class FindingRepositoryAdapter implements FindingRepositoryPort {
                 entity.getSnippet()
         );
 
-        return new Finding(
+        FindingCategory category;
+        try {
+            category = entity.getCategory() != null
+                    ? FindingCategory.valueOf(entity.getCategory())
+                    : FindingCategory.CODE_SMELL;
+        } catch (IllegalArgumentException e) {
+            category = FindingCategory.CODE_SMELL;
+        }
+
+        FindingLifecycle lifecycle = FindingLifecycle.of(
+                entity.getFirstSeenCommit() != null ? entity.getFirstSeenCommit() : entity.getCommitHash(),
+                entity.getLastSeenCommit() != null ? entity.getLastSeenCommit() : entity.getCommitHash(),
+                entity.getResolvedInCommit(),
+                entity.getFirstSeenAt(),
+                entity.getLastSeenAt(),
+                entity.getResolvedAt()
+        );
+
+        return Finding.reconstitute(
                 FindingId.of(entity.getId()),
                 entity.getProjectId(),
                 entity.getBranch(),
-                entity.getCommitHash(),
                 FindingFingerprint.of(entity.getFingerprint()),
                 toolInfo,
+                category,
                 ruleInfo,
                 Severity.valueOf(entity.getSeverity()),
                 location,
                 FindingStatus.valueOf(entity.getStatus()),
-                entity.getFirstSeenAt(),
-                entity.getLastSeenAt(),
+                lifecycle,
                 entity.getRawDetails()
         );
     }

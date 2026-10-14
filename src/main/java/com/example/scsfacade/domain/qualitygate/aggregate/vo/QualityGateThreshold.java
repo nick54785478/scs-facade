@@ -10,8 +10,19 @@ import java.util.Objects;
  */
 public final class QualityGateThreshold {
 
+    /**
+     * 允許之嚴重等級 (Critical) 弱點最大數量上限 (超過則門禁判定不合格)。
+     */
     private final int maxCritical;
+
+    /**
+     * 允許之高危險等級 (High) 弱點最大數量上限 (超過則門禁判定不合格)。
+     */
     private final int maxHigh;
+
+    /**
+     * 是否在偵測到機敏資訊洩漏 (Secret Leak) 時強制阻擋。
+     */
     private final boolean blockOnSecrets;
 
     public QualityGateThreshold(int maxCritical, int maxHigh, boolean blockOnSecrets) {
@@ -46,8 +57,12 @@ public final class QualityGateThreshold {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof QualityGateThreshold that)) return false;
+        if (this == o){
+            return true;
+        }
+        if (!(o instanceof QualityGateThreshold that)) {
+            return false;
+        }
         return maxCritical == that.maxCritical &&
                 maxHigh == that.maxHigh &&
                 blockOnSecrets == that.blockOnSecrets;

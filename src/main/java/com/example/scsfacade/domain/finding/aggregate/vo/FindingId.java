@@ -11,6 +11,9 @@ import java.util.UUID;
  */
 public final class FindingId {
 
+    /**
+     * 弱點唯一識別碼 UUID 字串值。
+     */
     private final String value;
 
     public FindingId(String value) {
@@ -45,8 +48,12 @@ public final class FindingId {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof FindingId findingId)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof FindingId findingId)) {
+            return false;
+        }
         return Objects.equals(value, findingId.value);
     }
 

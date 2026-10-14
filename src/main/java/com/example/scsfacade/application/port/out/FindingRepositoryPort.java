@@ -63,4 +63,13 @@ public interface FindingRepositoryPort {
      * @return 該專案之活躍弱點領域聚合根清單
      */
     List<Finding> findActiveByProjectId(String projectId);
+
+    /**
+     * 依專案代碼與指定分支查詢所有待處理（活躍中）的弱點。
+     *
+     * @param projectId 專案代碼
+     * @param branch    分支名稱
+     * @return 該分支之活躍弱點領域聚合根清單
+     */
+    List<Finding> findActiveByProjectAndBranch(String projectId, String branch);
 }

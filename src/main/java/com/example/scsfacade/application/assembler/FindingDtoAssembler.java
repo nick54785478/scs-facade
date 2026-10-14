@@ -30,14 +30,19 @@ public class FindingDtoAssembler {
                 finding.getProjectId(),
                 finding.getBranch(),
                 finding.getCommitHash(),
+                finding.getFirstSeenCommit(),
+                finding.getLastSeenCommit(),
+                finding.getResolvedInCommit(),
                 finding.getFingerprint().getValue(),
                 finding.getToolInfo().getName(),
                 finding.getToolInfo().getVersion(),
                 finding.getToolInfo().getCategory(),
+                finding.getCategory() != null ? finding.getCategory().name() : "CODE_SMELL",
                 finding.getRuleInfo().getRuleId(),
                 finding.getRuleInfo().getName(),
                 finding.getRuleInfo().getCweList(),
                 finding.getRuleInfo().getCve(),
+                finding.getRuleInfo().getTags(),
                 finding.getSeverity().name(),
                 finding.getLocation().getFilePath(),
                 finding.getLocation().getStartLine(),
@@ -46,6 +51,7 @@ public class FindingDtoAssembler {
                 finding.getStatus().name(),
                 finding.getFirstSeenAt(),
                 finding.getLastSeenAt(),
+                finding.getResolvedAt(),
                 finding.getRawDetails()
         );
     }

@@ -18,6 +18,7 @@ public record SonarQubeIssueDto(
         String message,
         String status,
         List<String> tags,
+        String type,
         String creationDate
 ) {
 }

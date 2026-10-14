@@ -110,8 +110,8 @@ services:
     image: postgres:15-alpine
     container_name: 'scs-facade-db-1'
     environment:
-      POSTGRES_USER: postgre
-      POSTGRES_PASSWORD: postgre
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: scs_facade
     ports:
       - '5432:5432'
@@ -122,10 +122,31 @@ services:
         aliases:
           - scs-facade-db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgre -d scs_facade"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d scs_facade"]
       interval: 5s
       timeout: 5s
       retries: 10
+
+  # ==========================================
+  # SCS Facade Redis 快取與分散式鎖容器
+  # ==========================================
+  scs-facade-redis:
+    image: redis:7-alpine
+    container_name: 'scs-facade-redis-1'
+    command: redis-server --appendonly yes
+    ports:
+      - '6379:6379'
+    volumes:
+      - scs_facade_redis_data:/data
+    networks:
+      devops-net:
+        aliases:
+          - scs-facade-redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 # ==========================================
 # 專屬內部網路 (自訂名稱避免與其他專案重疊)
@@ -144,3 +165,4 @@ volumes:
   scs_sonarqube_extensions:
   scs_sonarqube_logs:
   scs_facade_db_data:
+  scs_facade_redis_data:

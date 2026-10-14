@@ -2,6 +2,7 @@ package com.example.scsfacade.presentation.assembler;
 
 import com.example.scsfacade.application.command.IngestSonarQubeCommand;
 import com.example.scsfacade.application.dto.FindingGottenResult;
+import com.example.scsfacade.application.dto.ScanExecutionGottenResult;
 import com.example.scsfacade.presentation.resource.in.IngestSonarQubeResource;
 import com.example.scsfacade.presentation.resource.in.ReceiveSonarQubeWebhookResource;
 import com.example.scsfacade.presentation.resource.in.ReceiveSonarQubeWebhookResource.BranchNode;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -119,6 +121,7 @@ class SonarQubeResourceAssemblerTest {
         assertThat(command.projectId()).isEqualTo("scs-facade");
         assertThat(command.branch()).isEqualTo("feature/login");
         assertThat(command.commitHash()).isEqualTo("commit-rev-999");
+        assertThat(command.externalTaskId()).isEqualTo("12345");
     }
 
     /**
@@ -186,47 +189,54 @@ class SonarQubeResourceAssemblerTest {
     }
 
     /**
-     * Feature: 弱點 DTO 轉回應載體
-     * Scenario: 成功將 FindingGottenResult 清單組裝為 SonarQubeIngestedResource
-     * Given: 專案代碼與弱點 DTO 清單
-     * When: 執行 toResource(projectId, results)
-     * Then: 回傳對應弱點數量與內容的 SonarQubeIngestedResource
+     * Feature: 掃描結果 DTO 轉回應載體
+     * Scenario: 成功將 ScanExecutionGottenResult 組裝為 SonarQubeIngestedResource
+     * Given: 掃描結果 DTO 包含統計指標與弱點清單
+     * When: 執行 toResource(result)
+     * Then: 回傳對應弱點數量、指標與內容的 SonarQubeIngestedResource
      */
     @Test
-    @DisplayName("弱點結果轉回應 - 應正確組裝弱點數量與清單")
-    void shouldConvertFindingResultsToIngestedResource() {
+    @DisplayName("掃描結果轉回應 - 應正確組裝掃描歷程與弱點清單")
+    void shouldConvertScanExecutionResultToIngestedResource() {
         // Given
         FindingGottenResult mockDto = mock(FindingGottenResult.class);
         FindingGottenResource mockResource = mock(FindingGottenResource.class);
         when(findingResourceAssembler.toResource(mockDto)).thenReturn(mockResource);
 
+        ScanExecutionGottenResult result = new ScanExecutionGottenResult(
+                "exec-1", "scs-facade", "main", "commit-1",
+                "SonarQube", "10.0", "WEBHOOK", "SUCCESS",
+                1, 1, 0, 0, 0, 0, true,
+                Instant.now(), Instant.now(), null,
+                List.of(mockDto)
+        );
+
         // When
-        SonarQubeIngestedResource response = sonarQubeResourceAssembler.toResource("scs-facade", List.of(mockDto));
+        SonarQubeIngestedResource response = sonarQubeResourceAssembler.toResource(result);
 
         // Then
         assertThat(response).isNotNull();
+        assertThat(response.executionId()).isEqualTo("exec-1");
         assertThat(response.projectId()).isEqualTo("scs-facade");
-        assertThat(response.totalIngested()).isEqualTo(1);
+        assertThat(response.totalActiveCount()).isEqualTo(1);
+        assertThat(response.newCount()).isEqualTo(1);
         assertThat(response.findings()).containsExactly(mockResource);
     }
 
     /**
-     * Feature: 弱點結果清單為空時防護
-     * Scenario: 傳入 null 清單時應回傳計數為 0 且空清單之回應
-     * Given: results 為 null
-     * When: 執行 toResource(projectId, null)
-     * Then: 回傳 totalIngested 為 0
+     * Feature: 掃描結果為空時防護
+     * Scenario: 傳入 null 時應安全回傳 null
+     * Given: result 為 null
+     * When: 執行 toResource(null)
+     * Then: 回傳 null
      */
     @Test
-    @DisplayName("弱點結果為空時防護 - 應回傳安全空清單")
-    void shouldHandleNullFindingResultsSafely() {
+    @DisplayName("掃描結果為空時防護 - 應安全回傳 null")
+    void shouldHandleNullScanExecutionResultSafely() {
         // When
-        SonarQubeIngestedResource response = sonarQubeResourceAssembler.toResource("scs-facade", null);
+        SonarQubeIngestedResource response = sonarQubeResourceAssembler.toResource(null);
 
         // Then
-        assertThat(response).isNotNull();
-        assertThat(response.projectId()).isEqualTo("scs-facade");
-        assertThat(response.totalIngested()).isZero();
-        assertThat(response.findings()).isEmpty();
+        assertThat(response).isNull();
     }
 }

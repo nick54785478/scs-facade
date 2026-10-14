@@ -1,7 +1,7 @@
 package com.example.scsfacade.presentation.controller;
 
 import com.example.scsfacade.application.command.IngestSonarQubeCommand;
-import com.example.scsfacade.application.dto.FindingGottenResult;
+import com.example.scsfacade.application.dto.ScanExecutionGottenResult;
 import com.example.scsfacade.application.port.in.IngestSonarQubeUseCase;
 import com.example.scsfacade.presentation.assembler.SonarQubeResourceAssembler;
 import com.example.scsfacade.presentation.resource.in.IngestSonarQubeResource;
@@ -15,8 +15,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 /**
  * SonarQube 介接與 Webhook 控制器 (SonarQubeWebhookController)。
@@ -43,15 +41,15 @@ public class SonarQubeWebhookController {
      * 觸發 SonarQube 報告同步或手動觸發匯入。
      *
      * @param resource 請求載體
-     * @return 匯入標準弱點結果
+     * @return 匯入標準弱點與執行歷程結果
      */
-    @Operation(summary = "觸發 SonarQube 弱點報告拉取並進行標準化匯入")
+    @Operation(summary = "觸發 SonarQube 弱點報告拉取並進行生命週期對齊匯入")
     @PostMapping("/trigger")
     public ResponseEntity<SonarQubeIngestedResource> triggerIngestion(
             @Valid @RequestBody IngestSonarQubeResource resource) {
         IngestSonarQubeCommand command = sonarQubeResourceAssembler.toCommand(resource);
-        List<FindingGottenResult> results = ingestSonarQubeUseCase.execute(command);
-        SonarQubeIngestedResource response = sonarQubeResourceAssembler.toResource(resource.projectId(), results);
+        ScanExecutionGottenResult result = ingestSonarQubeUseCase.execute(command);
+        SonarQubeIngestedResource response = sonarQubeResourceAssembler.toResource(result);
         return ResponseEntity.ok(response);
     }
 
@@ -59,17 +57,15 @@ public class SonarQubeWebhookController {
      * 接收 SonarQube 伺服器原生 Webhook 推播並自動執行標準化匯入。
      *
      * @param resource SonarQube 原生 Webhook 載體
-     * @return 匯入標準弱點結果
+     * @return 匯入標準弱點與執行歷程結果
      */
-    @Operation(summary = "接收 SonarQube 原生 Webhook 推播並自動執行標準化匯入")
+    @Operation(summary = "接收 SonarQube 原生 Webhook 推播並自動執行生命週期對齊匯入")
     @PostMapping("/webhook")
     public ResponseEntity<SonarQubeIngestedResource> handleWebhook(
             @RequestBody ReceiveSonarQubeWebhookResource resource) {
         IngestSonarQubeCommand command = sonarQubeResourceAssembler.toCommand(resource);
-        List<FindingGottenResult> results = ingestSonarQubeUseCase.execute(command);
-        SonarQubeIngestedResource response = sonarQubeResourceAssembler.toResource(command.projectId(), results);
+        ScanExecutionGottenResult result = ingestSonarQubeUseCase.execute(command);
+        SonarQubeIngestedResource response = sonarQubeResourceAssembler.toResource(result);
         return ResponseEntity.ok(response);
     }
 }
-
-

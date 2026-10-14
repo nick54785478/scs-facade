@@ -1,7 +1,7 @@
 package com.example.scsfacade.presentation.controller;
 
 import com.example.scsfacade.application.command.IngestSonarQubeCommand;
-import com.example.scsfacade.application.dto.FindingGottenResult;
+import com.example.scsfacade.application.dto.ScanExecutionGottenResult;
 import com.example.scsfacade.application.port.in.IngestSonarQubeUseCase;
 import com.example.scsfacade.presentation.assembler.SonarQubeResourceAssembler;
 import com.example.scsfacade.presentation.resource.in.IngestSonarQubeResource;
@@ -20,8 +20,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.time.Instant;
 import java.util.Collections;
-import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -69,13 +69,19 @@ class SonarQubeWebhookControllerTest {
         // Given
         IngestSonarQubeResource resource = new IngestSonarQubeResource("scs-facade", "main", "sha123");
         IngestSonarQubeCommand command = new IngestSonarQubeCommand("scs-facade", "main", "sha123");
-        List<FindingGottenResult> results = Collections.emptyList();
+        ScanExecutionGottenResult result = new ScanExecutionGottenResult(
+                "exec-123", "scs-facade", "main", "sha123",
+                "SonarQube", "10.0", "MANUAL", "SUCCESS",
+                0, 0, 0, 0, 0, 0, true,
+                Instant.now(), Instant.now(), null,
+                Collections.emptyList()
+        );
         SonarQubeIngestedResource expectedResponse =
-                new SonarQubeIngestedResource("scs-facade", 0, Collections.emptyList());
+                new SonarQubeIngestedResource("exec-123", "scs-facade", "main", "sha123", "SUCCESS", true, 0, 0, 0, 0, 0, 0, Collections.emptyList());
 
         when(sonarQubeResourceAssembler.toCommand(any(IngestSonarQubeResource.class))).thenReturn(command);
-        when(ingestSonarQubeUseCase.execute(command)).thenReturn(results);
-        when(sonarQubeResourceAssembler.toResource("scs-facade", results)).thenReturn(expectedResponse);
+        when(ingestSonarQubeUseCase.execute(command)).thenReturn(result);
+        when(sonarQubeResourceAssembler.toResource(result)).thenReturn(expectedResponse);
 
         // When & Then
         mockMvc.perform(post("/api/v1/scans/sonarqube/trigger")
@@ -83,7 +89,8 @@ class SonarQubeWebhookControllerTest {
                         .content(objectMapper.writeValueAsString(resource)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.projectId").value("scs-facade"))
-                .andExpect(jsonPath("$.totalIngested").value(0));
+                .andExpect(jsonPath("$.executionId").value("exec-123"))
+                .andExpect(jsonPath("$.status").value("SUCCESS"));
 
         verify(ingestSonarQubeUseCase).execute(command);
     }
@@ -112,13 +119,19 @@ class SonarQubeWebhookControllerTest {
                 null
         );
         IngestSonarQubeCommand command = new IngestSonarQubeCommand("scs-facade", "dev", "commit-rev-456");
-        List<FindingGottenResult> results = Collections.emptyList();
+        ScanExecutionGottenResult result = new ScanExecutionGottenResult(
+                "exec-456", "scs-facade", "dev", "commit-rev-456",
+                "SonarQube", "10.0", "WEBHOOK", "SUCCESS",
+                0, 0, 0, 0, 0, 0, true,
+                Instant.now(), Instant.now(), null,
+                Collections.emptyList()
+        );
         SonarQubeIngestedResource expectedResponse =
-                new SonarQubeIngestedResource("scs-facade", 0, Collections.emptyList());
+                new SonarQubeIngestedResource("exec-456", "scs-facade", "dev", "commit-rev-456", "SUCCESS", true, 0, 0, 0, 0, 0, 0, Collections.emptyList());
 
         when(sonarQubeResourceAssembler.toCommand(any(ReceiveSonarQubeWebhookResource.class))).thenReturn(command);
-        when(ingestSonarQubeUseCase.execute(command)).thenReturn(results);
-        when(sonarQubeResourceAssembler.toResource("scs-facade", results)).thenReturn(expectedResponse);
+        when(ingestSonarQubeUseCase.execute(command)).thenReturn(result);
+        when(sonarQubeResourceAssembler.toResource(result)).thenReturn(expectedResponse);
 
         // When & Then
         mockMvc.perform(post("/api/v1/scans/sonarqube/webhook")
@@ -126,7 +139,8 @@ class SonarQubeWebhookControllerTest {
                         .content(objectMapper.writeValueAsString(webhookResource)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.projectId").value("scs-facade"))
-                .andExpect(jsonPath("$.totalIngested").value(0));
+                .andExpect(jsonPath("$.executionId").value("exec-456"))
+                .andExpect(jsonPath("$.status").value("SUCCESS"));
 
         verify(ingestSonarQubeUseCase).execute(command);
     }

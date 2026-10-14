@@ -40,4 +40,14 @@ public interface FindingJpaRepository extends JpaRepository<FindingJpaEntity, St
      * @return 實體清單
      */
     List<FindingJpaEntity> findByProjectIdAndStatusIn(String projectId, List<String> statuses);
+
+    /**
+     * 依專案代碼、分支與狀態清單查詢弱點記錄。
+     *
+     * @param projectId 專案代碼
+     * @param branch    分支名稱
+     * @param statuses  狀態清單
+     * @return 實體清單
+     */
+    List<FindingJpaEntity> findByProjectIdAndBranchAndStatusIn(String projectId, String branch, List<String> statuses);
 }

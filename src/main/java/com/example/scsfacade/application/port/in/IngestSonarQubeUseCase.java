@@ -1,24 +1,21 @@
 package com.example.scsfacade.application.port.in;
 
 import com.example.scsfacade.application.command.IngestSonarQubeCommand;
-import com.example.scsfacade.application.dto.FindingGottenResult;
-
-import java.util.List;
+import com.example.scsfacade.application.dto.ScanExecutionGottenResult;
 
 /**
- * 匯入 SonarQube 掃描結果使用案例 (IngestSonarQubeUseCase)。
+ * 匯入 SonarQube 掃描結果用例 (IngestSonarQubeUseCase)。
  * <p>
- * 遵循 ... + UseCase 命名規範。應用層對外開放的 Inbound Port 業務合約。
- * 負責協調 SonarQube 外部拉取、指紋去重、弱點生命週期狀態更新與儲存。
+ * 遵循 ... + UseCase 命名規範。定義表現層要求執行 SonarQube 拉取、弱點生命週期比對與門禁結算之合約。
  * </p>
  */
 public interface IngestSonarQubeUseCase {
 
     /**
-     * 執行 SonarQube 報告匯入流程。
+     * 執行 SonarQube 匯入與生命週期對齊。
      *
      * @param command 匯入命令
-     * @return 匯入或更新後的標準弱點結果清單
+     * @return 掃描執行完成結果 DTO
      */
-    List<FindingGottenResult> execute(IngestSonarQubeCommand command);
+    ScanExecutionGottenResult execute(IngestSonarQubeCommand command);
 }

@@ -10,9 +10,24 @@ import java.util.Objects;
  */
 public final class FindingLocation {
 
+    /**
+     * 源碼檔案相對路徑 (統一使用正斜線 /，例如 "src/main/java/App.java")。
+     */
     private final String filePath;
+
+    /**
+     * 弱點發生起始行號 (1-based，若未提供則為 null)。
+     */
     private final Integer startLine;
+
+    /**
+     * 弱點發生結束行號 (1-based，若未提供則為 null)。
+     */
     private final Integer endLine;
+
+    /**
+     * 弱點關聯之程式碼片段或上下文摘要。
+     */
     private final String snippet;
 
     public FindingLocation(String filePath, Integer startLine, Integer endLine, String snippet) {
@@ -43,8 +58,12 @@ public final class FindingLocation {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof FindingLocation that)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof FindingLocation that)){
+            return false;
+        }
         return Objects.equals(filePath, that.filePath) &&
                 Objects.equals(startLine, that.startLine) &&
                 Objects.equals(endLine, that.endLine) &&

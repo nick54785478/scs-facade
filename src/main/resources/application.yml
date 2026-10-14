@@ -7,8 +7,8 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/scs_facade}
     driver-class-name: org.postgresql.Driver
-    username: ${DB_USERNAME:postgre}
-    password: ${DB_PASSWORD:postgre}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
   jpa:
     hibernate:
       ddl-auto: update
@@ -16,6 +16,13 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      repositories:
+        enabled: false
 
 # SonarQube 集成配置
 sonarqube:

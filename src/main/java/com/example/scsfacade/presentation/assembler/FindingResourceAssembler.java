@@ -28,13 +28,18 @@ public class FindingResourceAssembler {
                 result.projectId(),
                 result.branch(),
                 result.commitHash(),
+                result.firstSeenCommit(),
+                result.lastSeenCommit(),
+                result.resolvedInCommit(),
                 result.fingerprint(),
                 result.toolName(),
                 result.toolCategory(),
+                result.category(),
                 result.ruleId(),
                 result.ruleName(),
                 result.cweList(),
                 result.cve(),
+                result.tags(),
                 result.severity(),
                 result.filePath(),
                 result.startLine(),
@@ -42,7 +47,8 @@ public class FindingResourceAssembler {
                 result.snippet(),
                 result.status(),
                 result.firstSeenAt(),
-                result.lastSeenAt()
+                result.lastSeenAt(),
+                result.resolvedAt()
         );
     }
 }

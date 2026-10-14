@@ -14,6 +14,9 @@ import java.util.Objects;
  */
 public final class FindingFingerprint {
 
+    /**
+     * SHA-256 指紋雜湊字串 (十六進制小寫字串)。
+     */
     private final String value;
 
     public FindingFingerprint(String value) {
@@ -24,18 +27,20 @@ public final class FindingFingerprint {
     }
 
     /**
-     * 根據專案、檔案相對路徑、規則 ID 與代碼上下文計算 SHA-256 唯一指紋。
+     * 根據專案、分支、檔案相對路徑、規則 ID 與代碼上下文計算 SHA-256 唯一指紋。
      *
      * @param projectId 專案代碼
+     * @param branch    分支名稱
      * @param filePath  檔案路徑
      * @param ruleId    規則代碼
      * @param snippet   代碼片段（或正規化上下文字串）
      * @return 計算後的 FindingFingerprint
      */
-    public static FindingFingerprint compute(String projectId, String filePath, String ruleId, String snippet) {
+    public static FindingFingerprint compute(String projectId, String branch, String filePath, String ruleId, String snippet) {
         String normalizedSnippet = snippet != null ? snippet.replaceAll("\\s+", " ").trim() : "";
-        String raw = String.format("%s:%s:%s:%s",
+        String raw = String.format("%s:%s:%s:%s:%s",
                 projectId != null ? projectId.trim() : "",
+                branch != null ? branch.trim() : "main",
                 filePath != null ? filePath.trim().replace("\\", "/") : "",
                 ruleId != null ? ruleId.trim() : "",
                 normalizedSnippet);
@@ -48,6 +53,13 @@ public final class FindingFingerprint {
         }
     }
 
+    /**
+     * 預設分支（向後相容）計算指紋。
+     */
+    public static FindingFingerprint compute(String projectId, String filePath, String ruleId, String snippet) {
+        return compute(projectId, "main", filePath, ruleId, snippet);
+    }
+
     public static FindingFingerprint of(String value) {
         return new FindingFingerprint(value);
     }
@@ -58,8 +70,12 @@ public final class FindingFingerprint {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof FindingFingerprint that)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof FindingFingerprint that)) {
+            return false;
+        }
         return Objects.equals(value, that.value);
     }
 

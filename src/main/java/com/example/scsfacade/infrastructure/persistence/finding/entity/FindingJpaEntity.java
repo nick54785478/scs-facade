@@ -40,6 +40,15 @@ public class FindingJpaEntity {
     @Column(name = "commit_hash", length = 64)
     private String commitHash;
 
+    @Column(name = "first_seen_commit", length = 64)
+    private String firstSeenCommit;
+
+    @Column(name = "last_seen_commit", length = 64)
+    private String lastSeenCommit;
+
+    @Column(name = "resolved_in_commit", length = 64)
+    private String resolvedInCommit;
+
     @Column(name = "fingerprint", length = 64, nullable = false, unique = true)
     private String fingerprint;
 
@@ -52,6 +61,9 @@ public class FindingJpaEntity {
     @Column(name = "tool_category", length = 32)
     private String toolCategory;
 
+    @Column(name = "category", length = 32)
+    private String category;
+
     @Column(name = "rule_id", length = 128, nullable = false)
     private String ruleId;
 
@@ -59,10 +71,13 @@ public class FindingJpaEntity {
     private String ruleName;
 
     @Column(name = "cwe_list", length = 255)
-    private String cweList; // 以逗號分隔之 CWE 清單
+    private String cweList; // 以逗號分隔之正規 CWE 清單
 
     @Column(name = "cve", length = 64)
     private String cve;
+
+    @Column(name = "tags", length = 512)
+    private String tags; // 以逗號分隔之一般標籤清單
 
     @Column(name = "severity", length = 32, nullable = false)
     private String severity;
@@ -88,6 +103,9 @@ public class FindingJpaEntity {
 
     @Column(name = "last_seen_at", nullable = false)
     private Instant lastSeenAt;
+
+    @Column(name = "resolved_at")
+    private Instant resolvedAt;
 
     @Lob
     @Column(name = "raw_details")

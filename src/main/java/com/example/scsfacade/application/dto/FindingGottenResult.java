@@ -16,14 +16,19 @@ public record FindingGottenResult(
         String projectId,
         String branch,
         String commitHash,
+        String firstSeenCommit,
+        String lastSeenCommit,
+        String resolvedInCommit,
         String fingerprint,
         String toolName,
         String toolVersion,
         String toolCategory,
+        String category,
         String ruleId,
         String ruleName,
         List<String> cweList,
         String cve,
+        List<String> tags,
         String severity,
         String filePath,
         Integer startLine,
@@ -32,6 +37,7 @@ public record FindingGottenResult(
         String status,
         Instant firstSeenAt,
         Instant lastSeenAt,
+        Instant resolvedAt,
         String rawDetails
 ) {
 }

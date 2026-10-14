@@ -1,6 +1,7 @@
 package com.example.scsfacade.infrastructure.adapter;
 
 import com.example.scsfacade.application.port.out.FindingEventPublisherPort;
+import com.example.scsfacade.domain.event.DomainEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -27,17 +28,18 @@ public class FindingEventPublisherAdapter implements FindingEventPublisherPort {
     }
 
     @Override
-    public void publish(Object event) {
+    public void publish(DomainEvent event) {
         if (event != null) {
-            log.debug("發布領域事件: {}", event.getClass().getSimpleName());
+            log.debug("發布領域事件: {} [eventId={}, aggregateType={}, aggregateId={}, occurredAt={}]",
+                    event.getClass().getSimpleName(), event.eventId(), event.aggregateType(), event.aggregateId(), event.occurredAt());
             applicationEventPublisher.publishEvent(event);
         }
     }
 
     @Override
-    public void publishAll(List<Object> events) {
+    public void publishAll(List<DomainEvent> events) {
         if (events != null) {
-            for (Object event : events) {
+            for (DomainEvent event : events) {
                 publish(event);
             }
         }
