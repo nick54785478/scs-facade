@@ -26,5 +26,10 @@ public enum ScanTriggerType {
     /**
      * 檔案上傳模式主動匯入 (例如 CI/CD 上傳 SARIF/JSON 報告)。
      */
-    UPLOAD
+    UPLOAD,
+
+    /**
+     * 低頻排程對帳與最終一致性補償發起 (例如每日定期比對伺服器狀態)。
+     */
+    RECONCILIATION
 }

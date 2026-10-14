@@ -35,5 +35,12 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
-    tags-sorter: alpha
-    operations-sorter: method
+  tags-sorter: alpha
+  operations-sorter: method
+
+# 低頻對帳排程配置 (Reconciliation Pull Mode)
+scs:
+  reconciliation:
+    enabled: ${SCS_RECONCILIATION_ENABLED:true}
+    cron: ${SCS_RECONCILIATION_CRON:0 0 2 * * ?}
+    managed-projects: ${SCS_MANAGED_PROJECTS:scs-facade}
