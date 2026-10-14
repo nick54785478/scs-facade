@@ -56,6 +56,8 @@
 ## 相關文件
 
 * [系統架構與 DDD 設計指南](doc/source_code_scan_facade_design.md)
+* [GitLab CI 通過條件與品質門檻規範](doc/CI%20通過條件與品質門檻規範.md)
+* [SonarQube Quality Gate 與測試覆蓋率整合指南](doc/SonarQube%20Quality%20Gate%20與測試覆蓋率整合指南.md)
 * [GitLab CI、SonarQube 與 SCS Facade 整合架構](doc/ci_cd_integration_architecture.md)
 * [建立 GitLab CI 與 SonarQube 操作指南](doc/建立%20GitLab%20CI.md)
 * [GitLab 首次登入操作指南](doc/GitLab%20首次登入操作指南.md)
