@@ -26,5 +26,15 @@ public enum FindingCategory {
     /**
      * 安全熱點 (Security Hotspot)：具備潛在資安敏感性但需人工審核判斷之代碼區段 (如加解密演算法使用)。
      */
-    SECURITY_HOTSPOT
+    SECURITY_HOTSPOT,
+
+    /**
+     * 機敏資訊洩漏 (Secret Leak)：程式碼中硬編碼之密碼、API 金鑰或私鑰等憑證。
+     */
+    SECRET_LEAK,
+
+    /**
+     * 軟體相依套件漏洞 (SCA)：第三方套件相依庫中所存在之已知安全漏洞 (如 CVE)。
+     */
+    SCA
 }

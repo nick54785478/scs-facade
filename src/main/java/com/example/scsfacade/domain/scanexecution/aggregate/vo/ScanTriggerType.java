@@ -21,5 +21,10 @@ public enum ScanTriggerType {
     /**
      * 管理人員手動發起 (例如在後台點擊重新檢測或補抓歷史紀錄)。
      */
-    MANUAL
+    MANUAL,
+
+    /**
+     * 檔案上傳模式主動匯入 (例如 CI/CD 上傳 SARIF/JSON 報告)。
+     */
+    UPLOAD
 }
