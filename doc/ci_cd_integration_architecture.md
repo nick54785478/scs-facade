@@ -15,23 +15,30 @@
 flowchart TD
     subgraph Host [開發者主機 / 宿主機 (Host Machine)]
         Dev[開發者 Workstation\ngit push]
-        FacadeApp[SCS Facade 微服務\nSpring Boot (Port 8080)]
-        FacadeDB[(Facade 資料庫\nH2 / PostgreSQL)]
-        FacadeApp --> FacadeDB
+        FacadeApp[SCS Facade 核心微服務\nSpring Boot (Port 8080)]
     end
 
-    subgraph DockerNet [Docker 自建容器網絡 (devsecops-net)]
-        GitLab[GitLab CE/EE 容器\nPort 80 / 443]
+    subgraph DockerNet [Docker 自建容器網絡 (devops-net / scs_gitlabci_devops-net)]
+        GitLab[GitLab CE 容器\nPort 8888 (Web) / 2222 (SSH)]
         Runner[GitLab CI Runner 容器\nDocker Executor]
         SonarQube[SonarQube 容器\nPort 9000]
+        SonarDB[(SonarQube DB\nPostgreSQL)]
+        FacadeDB[(SCS Facade DB\nPostgreSQL Port 5432)]
+        FacadeRedis[(SCS Facade Redis\nCache & Lock Port 6379)]
+
+        SonarQube --> SonarDB
     end
 
-    Dev -- "git push gitlab main" --> GitLab
+    FacadeApp --> FacadeDB
+    FacadeApp --> FacadeRedis
+
+    Dev -- "git push (http://localhost:8888)" --> GitLab
     GitLab -- "調度 Job" --> Runner
-    Runner -- "1. mvn verify sonar:sonar" --> SonarQube
-    Runner -- "2. POST /api/v1/scans/sonarqube/trigger\n(host.docker.internal:8080)" --> FacadeApp
-    Runner -- "3. POST /api/v1/quality-gate/evaluate\n門禁阻擋審查" --> FacadeApp
-    FacadeApp -- "REST API: 拉取 Issues 清單" --> SonarQube
+    Runner -- "1. mvn clean test sonar:sonar" --> SonarQube
+    SonarQube -. "2a. 原生 Webhook 即時推播\n(/api/v1/scans/sonarqube/webhook)" .-> FacadeApp
+    Runner -- "2b. CI 觸發匯入 (/trigger) 或 SARIF 上傳 (/upload)\n(host.docker.internal:8080)" --> FacadeApp
+    Runner -- "3. 呼叫品質門禁審查\n(/api/v1/quality-gate/evaluate)" --> FacadeApp
+    FacadeApp -- "4. Pull 模式低頻狀態對帳\n(GET /api/issues/search)" --> SonarQube
 ```
 
 ### 2.2 端到端時序圖 (End-to-End Sequence Diagram)
@@ -188,15 +195,15 @@ scs-facade-sync:
   * 在 Linux 原生 Docker 環境中，Runner 容器需在啟動時加上 `--add-host=host.docker.internal:host-gateway`。
 
 ### 5.2 建立專屬 Docker 內部網路 (推薦)
-建議為所有相關基礎設施容器建立共用 Network，容器間直接以「服務名稱」通訊：
+建議為所有相關基礎設施容器建立共用 Network，容器間直接以「服務名稱」通訊（本專案已於 `docker-compose/docker-compose.yml` 中預設建立 `devops-net` 網路，名稱為 `scs_gitlabci_devops-net`）：
 ```bash
-# 1. 建立共用網路
-docker network create devsecops-net
+# 1. 建立共用網路 (若手動建立)
+docker network create devops-net
 
 # 2. 將 GitLab、SonarQube、Runner 連入同一網路
-docker network connect devsecops-net gitlab
-docker network connect devsecops-net sonarqube
-docker network connect devsecops-net gitlab-runner
+docker network connect devops-net scs-gitlabci-web-1
+docker network connect devops-net scs-gitlabci-sonarqube-1
+docker network connect devops-net scs-gitlabci-runner-1
 ```
 此時 Runner 即可直接透過 `http://sonarqube:9000` 存取 SonarQube。
 
