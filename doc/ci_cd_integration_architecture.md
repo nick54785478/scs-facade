@@ -13,18 +13,18 @@
 
 ```mermaid
 flowchart TD
-    subgraph Host [開發者主機 / 宿主機 (Host Machine)]
-        Dev[開發者 Workstation\ngit push]
-        FacadeApp[SCS Facade 核心微服務\nSpring Boot (Port 8080)]
+    subgraph Host ["開發者主機 / 宿主機 (Host Machine)"]
+        Dev["開發者 Workstation<br/>git push"]
+        FacadeApp["SCS Facade 核心微服務<br/>Spring Boot (Port 8080)"]
     end
 
-    subgraph DockerNet [Docker 自建容器網絡 (devops-net / scs_gitlabci_devops-net)]
-        GitLab[GitLab CE 容器\nPort 8888 (Web) / 2222 (SSH)]
-        Runner[GitLab CI Runner 容器\nDocker Executor]
-        SonarQube[SonarQube 容器\nPort 9000]
-        SonarDB[(SonarQube DB\nPostgreSQL)]
-        FacadeDB[(SCS Facade DB\nPostgreSQL Port 5432)]
-        FacadeRedis[(SCS Facade Redis\nCache & Lock Port 6379)]
+    subgraph DockerNet ["Docker 自建容器網絡 (devops-net)"]
+        GitLab["GitLab CE 容器<br/>Port 8888 (Web) / 2222 (SSH)"]
+        Runner["GitLab CI Runner 容器<br/>Docker Executor"]
+        SonarQube["SonarQube 容器<br/>Port 9000"]
+        SonarDB[("SonarQube DB<br/>PostgreSQL")]
+        FacadeDB[("SCS Facade DB<br/>PostgreSQL Port 5432")]
+        FacadeRedis[("SCS Facade Redis<br/>Cache & Lock Port 6379")]
 
         SonarQube --> SonarDB
     end
@@ -35,10 +35,10 @@ flowchart TD
     Dev -- "git push (http://localhost:8888)" --> GitLab
     GitLab -- "調度 Job" --> Runner
     Runner -- "1. mvn clean test sonar:sonar" --> SonarQube
-    SonarQube -. "2a. 原生 Webhook 即時推播\n(/api/v1/scans/sonarqube/webhook)" .-> FacadeApp
-    Runner -- "2b. CI 觸發匯入 (/trigger) 或 SARIF 上傳 (/upload)\n(host.docker.internal:8080)" --> FacadeApp
-    Runner -- "3. 呼叫品質門禁審查\n(/api/v1/quality-gate/evaluate)" --> FacadeApp
-    FacadeApp -- "4. Pull 模式低頻狀態對帳\n(GET /api/issues/search)" --> SonarQube
+    SonarQube -. "2a. 原生 Webhook 即時推播<br/>(/api/v1/scans/sonarqube/webhook)" .-> FacadeApp
+    Runner -- "2b. CI 觸發匯入 (/trigger) 或 SARIF 上傳 (/upload)<br/>(host.docker.internal:8080)" --> FacadeApp
+    Runner -- "3. 呼叫品質門禁審查<br/>(/api/v1/quality-gate/evaluate)" --> FacadeApp
+    FacadeApp -- "4. Pull 模式低頻狀態對帳<br/>(GET /api/issues/search)" --> SonarQube
 ```
 
 ### 2.2 端到端時序圖 (End-to-End Sequence Diagram)
